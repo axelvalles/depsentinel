@@ -4,6 +4,7 @@ import { runCi } from "./commands/ci.js";
 import { runInit } from "./commands/init.js";
 import { runScan } from "./commands/scan.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runFix }    from "./commands/fix.js";
 import { runInstall } from "./commands/install.js";
 
 export function createCli(): ReturnType<typeof cac> {
@@ -69,6 +70,15 @@ export function createCli(): ReturnType<typeof cac> {
       if (result.envelope.result.failed > 0) {
         process.exitCode = 1;
       }
+    });
+
+  cli
+    .command("fix", "Apply known remediations for detected gaps (dry-run by default)")
+    .option("--write", "Apply changes")
+    .option("--json", "Emit machine-readable JSON")
+    .action((options: { write?: boolean; json?: boolean }) => {
+      const result = runFix({ dryRun: !options.write, json: Boolean(options.json) });
+      process.stdout.write(`${result.output}\n`);
     });
 
   return cli;
