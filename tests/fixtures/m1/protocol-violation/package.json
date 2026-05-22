@@ -1,0 +1,7 @@
+{
+  "name": "protocol-violation",
+  "private": true,
+  "dependencies": {
+    "bad-lib": "git+https://example.com/repo.git"
+  }
+}

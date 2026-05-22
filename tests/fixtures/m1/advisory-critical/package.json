@@ -1,0 +1,7 @@
+{
+  "name": "advisory-critical",
+  "private": true,
+  "dependencies": {
+    "vulnerable-lib": "1.0.0"
+  }
+}

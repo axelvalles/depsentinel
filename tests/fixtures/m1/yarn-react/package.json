@@ -1,0 +1,7 @@
+{
+  "name": "yarn-react-fixture",
+  "private": true,
+  "dependencies": {
+    "react": "18.3.1"
+  }
+}

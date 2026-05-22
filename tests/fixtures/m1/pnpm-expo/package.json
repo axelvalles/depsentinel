@@ -1,0 +1,10 @@
+{
+  "name": "pnpm-expo",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "dependencies": {
+    "expo": "51.0.0"
+  }
+}

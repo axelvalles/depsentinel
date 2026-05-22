@@ -1,0 +1,66 @@
+## Verification Report
+
+**Change**: objetivo-claro-mvp-scan-init-ci  
+**Version**: Milestone 1 (`scan + init + ci`)  
+**Mode**: Standard (M1 scoped)
+
+### Completeness
+| Metric | Value |
+|--------|-------|
+| Tasks total | 13 |
+| Tasks complete | 13 |
+| Tasks incomplete | 0 |
+
+### Build & Tests Execution
+**Build**: ➖ Not run (constraint: do not run build commands)
+
+**Tests**: ✅ 22 passed / ❌ 0 failed / ⚠️ 0 skipped
+```text
+npm run test
+- Test Files: 6 passed
+- Tests: 22 passed
+```
+
+**Type Check**: ✅ Passed
+```text
+npm run typecheck
+- tsc --noEmit exited successfully
+```
+
+**Coverage**: ➖ Not available (no coverage threshold configured)
+
+### Spec Compliance Matrix
+| Requirement | Scenario | Test | Result |
+|-------------|----------|------|--------|
+| Deterministic Risk Evaluation | Deterministic score for same input | `tests/scan-baseline.spec.ts > returns deterministic findings ordering` | ✅ COMPLIANT |
+| Deterministic Risk Evaluation | Missing lockfile still returns full envelope | `tests/scan-baseline.spec.ts > emits complete output envelope for missing lockfile` | ✅ COMPLIANT |
+| Policy-Critical Checks | Disallowed dependency source/protocol is critical | `tests/ci.spec.ts > fails gate when critical policy findings exist` | ✅ COMPLIANT |
+| Policy-Critical Checks | Known critical advisory match from configured source | `tests/scan-baseline.spec.ts > matches a critical advisory from fixture provider` + `tests/ci.spec.ts > fails gate when a critical advisory match is detected` | ✅ COMPLIANT |
+| Policy-Critical Checks | Expo preset compatibility baseline rule | `tests/scan-baseline.spec.ts > includes expo baseline rule coverage` | ✅ COMPLIANT |
+| Actionable Output Envelope | Includes `risk_score`, `proposed_diff`, `remediation_commands` | `tests/scan-baseline.spec.ts > emits complete output envelope for missing lockfile` + `tests/ci.spec.ts > passes gate for healthy baseline and keeps M1 output contract` | ✅ COMPLIANT |
+| Universal JS/TS Compatibility | Unknown framework degrades gracefully with explicit diagnostics | `tests/ci.spec.ts > degrades gracefully to universal JS/TS baseline for unknown framework` | ✅ COMPLIANT |
+
+**Compliance summary**: 7/7 scenarios compliant
+
+### Correctness (Static Evidence)
+| Requirement | Status | Notes |
+|------------|--------|-------|
+| Advisory critical source integration | ✅ Implemented | `advisory.critical.stub` replaced by `advisory.critical.detected`, wired through `AdvisorySource` contract and fixture provider |
+| Unknown framework explicit assertion | ✅ Implemented | Unknown framework fixture now explicitly validated for universal baseline diagnostics |
+| M1 output contract stability | ✅ Implemented | Contract keys preserved in CI and scan assertions |
+
+### Coherence (Design)
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| Thin handlers + service/domain modules | ✅ Yes | No architectural drift introduced by verify-gap patch |
+| Deterministic local policy/advisory evaluation for M1 | ✅ Yes | Advisory provider remains local fixture-backed for deterministic behavior |
+| Dual output contract stability | ✅ Yes | JSON envelope keys remain unchanged and asserted |
+
+### Issues Found
+**CRITICAL**: None  
+**WARNING**: Advisory source remains fixture-backed for M1 (expected by milestone scope; live feed integration deferred).  
+**SUGGESTION**: Add optional coverage command/threshold in next milestone to strengthen regression gates.
+
+### Verdict
+PASS
+Previously failing verify gaps are resolved: advisory critical detection is runtime tested and unknown framework diagnostics are explicitly asserted.

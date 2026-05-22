@@ -1,0 +1,13 @@
+note: verify-gap patch
+mode: standard
+change: objetivo-claro-mvp-scan-init-ci
+completed:
+  - Replaced `advisory.critical.stub` with `advisory.critical.detected` and wired to a concrete advisory source contract (`AdvisorySource`) backed by local M1 fixtures.
+  - Added runtime test coverage for advisory-positive critical gate failure path in CI.
+  - Added explicit fixture-driven unknown framework graceful diagnostics assertion.
+  - Preserved output contract fields: `risk_score`, `proposed_diff`, `remediation_commands`.
+validation:
+  - npm run test (pass)
+  - npm run typecheck (pass)
+deviations_from_design: None — implementation is a targeted verify-gap patch within M1 scope.
+remaining: []

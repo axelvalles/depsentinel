@@ -1,0 +1,33 @@
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+function collectFiles(dir: string): string[] {
+  return readdirSync(dir)
+    .flatMap((entry) => {
+      const absolute = path.join(dir, entry);
+      const info = statSync(absolute);
+      return info.isDirectory() ? collectFiles(absolute) : [absolute];
+    })
+    .sort();
+}
+
+describe("fixtures hash", () => {
+  it("is deterministic for milestone 1 fixtures", () => {
+    const root = path.resolve("tests/fixtures/m1");
+    const files = collectFiles(root);
+    const hash = createHash("sha256");
+
+    for (const file of files) {
+      hash.update(path.relative(root, file));
+      hash.update("\n");
+      hash.update(readFileSync(file));
+      hash.update("\n");
+    }
+
+    expect(hash.digest("hex")).toMatchInlineSnapshot(
+      '"55e8476be5e852d7aa8e4c3064ecf4c9c1c078d3e525504d2cc84df4dd45f569"'
+    );
+  });
+});

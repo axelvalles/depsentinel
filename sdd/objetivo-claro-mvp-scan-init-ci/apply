@@ -1,0 +1,26 @@
+status: success
+executive_summary: >-
+  Applied a strict verify-gap patch for M1 by replacing the advisory stub with a concrete fixture-backed advisory source contract,
+  wiring policy-critical evaluation to it, and adding runtime + fixture-driven tests for advisory-positive and unknown-framework paths
+  without changing the output contract fields (`risk_score`, `proposed_diff`, `remediation_commands`).
+artifacts:
+  - sdd/objetivo-claro-mvp-scan-init-ci/apply
+  - sdd/objetivo-claro-mvp-scan-init-ci/apply-progress
+changed_files:
+  - src/advisories/source.ts
+  - src/advisories/fixture-source.ts
+  - src/policies/catalog.v1.ts
+  - tests/scan-baseline.spec.ts
+  - tests/ci.spec.ts
+  - tests/fixtures-hash.spec.ts
+  - tests/fixtures/m1/advisory-critical/package.json
+  - tests/fixtures/m1/advisory-critical/package-lock.json
+  - tests/fixtures/m1/unknown-framework/package.json
+  - tests/fixtures/m1/unknown-framework/package-lock.json
+test_commands_executed:
+  - npm run test
+  - npm run typecheck
+next_recommended:
+  - Run sdd-verify for `objetivo-claro-mvp-scan-init-ci` using updated fixtures and advisory runtime path.
+risks:
+  - Advisory source is fixture-backed for M1 and does not fetch external feeds; future milestones must replace/extend provider for live advisory ingestion.
