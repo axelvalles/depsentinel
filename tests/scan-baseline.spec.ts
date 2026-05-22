@@ -14,9 +14,12 @@ describe("scan baseline", () => {
     expect(ids).toMatchInlineSnapshot(`
       [
         "advisory.critical.detected",
+        "ci.sbom.missing",
+        "config.files.allowlist",
         "dependency.protocol.disallowed",
         "expo.baseline.workspace-required",
         "lockfile.required",
+        "maintainer.env.plaintext",
       ]
     `);
   });

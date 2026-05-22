@@ -6,6 +6,7 @@ import { runScan } from "./commands/scan.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runFix }    from "./commands/fix.js";
 import { runInstall } from "./commands/install.js";
+import { overrideAdd, overrideList, overrideRemove } from "./core/overrides.js";
 
 export function createCli(): ReturnType<typeof cac> {
   const cli = cac("depsentinel");
@@ -79,6 +80,40 @@ export function createCli(): ReturnType<typeof cac> {
     .action((options: { write?: boolean; json?: boolean }) => {
       const result = runFix({ dryRun: !options.write, json: Boolean(options.json) });
       process.stdout.write(`${result.output}\n`);
+    });
+
+  cli
+    .command("override <action> [ruleId]", "Manage policy overrides (add | remove | list)")
+    .option("--reason <reason>", "Reason for the override")
+    .option("--expires <date>", "Expiration date (YYYY-MM-DD)")
+    .action((action: string, ruleId: string | undefined, options: { reason?: string; expires?: string }) => {
+      if (action === "list") {
+        const store = overrideList();
+        process.stdout.write(JSON.stringify(store, null, 2) + "\n");
+        return;
+      }
+      if (!ruleId) {
+        process.stderr.write("ruleId is required for add/remove\n");
+        process.exitCode = 1;
+        return;
+      }
+      if (action === "remove") {
+        const store = overrideRemove(ruleId);
+        process.stdout.write(JSON.stringify(store, null, 2) + "\n");
+        return;
+      }
+      if (action === "add") {
+        if (!options.reason || !options.expires) {
+          process.stderr.write("--reason and --expires are required for add\n");
+          process.exitCode = 1;
+          return;
+        }
+        const store = overrideAdd({ ruleId, reason: options.reason, expires: options.expires });
+        process.stdout.write(JSON.stringify(store, null, 2) + "\n");
+        return;
+      }
+      process.stderr.write(`Unknown action: ${action}\n`);
+      process.exitCode = 1;
     });
 
   return cli;

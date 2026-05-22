@@ -4,6 +4,9 @@
   "workspaces": [
     "apps/*"
   ],
+  "scripts": {
+    "sbom": "echo sbom"
+  },
   "dependencies": {
     "expo": "51.0.0"
   }

@@ -27,7 +27,7 @@ describe("fixtures hash", () => {
     }
 
     expect(hash.digest("hex")).toMatchInlineSnapshot(
-      '"55e8476be5e852d7aa8e4c3064ecf4c9c1c078d3e525504d2cc84df4dd45f569"'
+      `"85e5cf966696e4f8fed16f190cbe9ff3502a8d8fc699f48f16ba7e45a5670f6e"`
     );
   });
 });
