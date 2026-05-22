@@ -1,6 +1,6 @@
 {
   "name": "depsentinel",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "JS/TS supply-chain hardening CLI — scan, secure, and enforce dependency policies",
   "license": "MIT",
   "author": "depsentinel contributors",
