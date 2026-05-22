@@ -41,7 +41,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint:lockfile": "lockfile-lint --path pnpm-lock.yaml --type pnpm --allowed-hosts npm --validate-https",
+    "lint:lockfile": "node scripts/lint-lockfile.mjs",
     "sbom": "npx @cyclonedx/cyclonedx-npm --validate > sbom.json"
   },
   "dependencies": {
