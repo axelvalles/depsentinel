@@ -13,6 +13,12 @@ function collectFiles(dir: string): string[] {
     .sort();
 }
 
+function normalizeForStableHash(root: string, file: string): { relativePath: string; content: string } {
+  const relativePath = path.relative(root, file).replace(/\\/g, "/");
+  const content = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+  return { relativePath, content };
+}
+
 describe("fixtures hash", () => {
   it("is deterministic for milestone 1 fixtures", () => {
     const root = path.resolve("tests/fixtures/m1");
@@ -20,14 +26,15 @@ describe("fixtures hash", () => {
     const hash = createHash("sha256");
 
     for (const file of files) {
-      hash.update(path.relative(root, file));
+      const normalized = normalizeForStableHash(root, file);
+      hash.update(normalized.relativePath);
       hash.update("\n");
-      hash.update(readFileSync(file));
+      hash.update(normalized.content);
       hash.update("\n");
     }
 
     expect(hash.digest("hex")).toMatchInlineSnapshot(
-      `"85e5cf966696e4f8fed16f190cbe9ff3502a8d8fc699f48f16ba7e45a5670f6e"`
+      `"a760d2106ea283e20c790e7d6d366ed1bf399ec4e78d25358b28539a0604b0ea"`
     );
   });
 });
