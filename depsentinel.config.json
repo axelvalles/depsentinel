@@ -1,6 +1,0 @@
-{
-  "schemaVersion": "1.0.0",
-  "preset": "base",
-  "policyFile": "depsentinel.policy.json",
-  "overridesFile": "depsentinel.overrides.json"
-}

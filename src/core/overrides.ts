@@ -8,28 +8,39 @@ export interface OverrideEntry {
   createdAt: string;
 }
 
-export interface OverrideStore {
+export interface DepsentinelConfig {
   schemaVersion: string;
+  preset: string;
+  policyCatalog: string;
+  failOn: string[];
   overrides: OverrideEntry[];
 }
 
-function defaults(): OverrideStore {
-  return { schemaVersion: "1.0.0", overrides: [] };
+const CONFIG_FILE = "depsentinel.json";
+
+function defaults(): DepsentinelConfig {
+  return { schemaVersion: "1.0.0", preset: "base", policyCatalog: "v1", failOn: ["critical"], overrides: [] };
 }
 
-function readStore(cwd: string): OverrideStore {
-  const storePath = path.join(cwd, "depsentinel.overrides.json");
-  if (!existsSync(storePath)) return defaults();
+function readConfig(cwd: string): DepsentinelConfig {
+  const filePath = path.join(cwd, CONFIG_FILE);
+  if (!existsSync(filePath)) return defaults();
   try {
-    const raw = JSON.parse(readFileSync(storePath, "utf8")) as OverrideStore;
-    return { schemaVersion: raw.schemaVersion ?? "1.0.0", overrides: raw.overrides ?? [] };
+    const raw = JSON.parse(readFileSync(filePath, "utf8")) as Partial<DepsentinelConfig>;
+    return {
+      schemaVersion: raw.schemaVersion ?? "1.0.0",
+      preset: raw.preset ?? "base",
+      policyCatalog: raw.policyCatalog ?? "v1",
+      failOn: raw.failOn ?? ["critical"],
+      overrides: raw.overrides ?? []
+    };
   } catch {
     return defaults();
   }
 }
 
-function writeStore(cwd: string, store: OverrideStore): void {
-  writeFileSync(path.join(cwd, "depsentinel.overrides.json"), JSON.stringify(store, null, 2) + "\n", "utf8");
+function writeConfig(cwd: string, config: DepsentinelConfig): void {
+  writeFileSync(path.join(cwd, CONFIG_FILE), JSON.stringify(config, null, 2) + "\n", "utf8");
 }
 
 export interface OverrideAddOptions {
@@ -39,37 +50,35 @@ export interface OverrideAddOptions {
   expires: string;
 }
 
-export function overrideAdd(options: OverrideAddOptions): OverrideStore {
+export function overrideAdd(options: OverrideAddOptions): DepsentinelConfig {
   const cwd = options.cwd ?? process.cwd();
-  const store = readStore(cwd);
-  store.overrides = store.overrides.filter((e) => e.ruleId !== options.ruleId);
-  store.overrides.push({
+  const config = readConfig(cwd);
+  config.overrides = config.overrides.filter((e) => e.ruleId !== options.ruleId);
+  config.overrides.push({
     ruleId: options.ruleId,
     reason: options.reason,
     expires: options.expires,
     createdAt: new Date().toISOString().split("T")[0]
   });
-  writeStore(cwd, store);
-  return store;
+  writeConfig(cwd, config);
+  return config;
 }
 
-export function overrideRemove(ruleId: string, cwd?: string): OverrideStore {
-  const dir = cwd ?? process.cwd();
-  const store = readStore(dir);
-  store.overrides = store.overrides.filter((e) => e.ruleId !== ruleId);
-  writeStore(dir, store);
-  return store;
+export function overrideRemove(ruleId: string, cwd?: string): DepsentinelConfig {
+  const cwd_ = cwd ?? process.cwd();
+  const config = readConfig(cwd_);
+  config.overrides = config.overrides.filter((e) => e.ruleId !== ruleId);
+  writeConfig(cwd_, config);
+  return config;
 }
 
-export function overrideList(cwd?: string): OverrideStore {
-  return readStore(cwd ?? process.cwd());
+export function overrideList(cwd?: string): DepsentinelConfig {
+  return readConfig(cwd ?? process.cwd());
 }
 
 export function isOverridden(ruleId: string, cwd?: string): boolean {
-  const store = readStore(cwd ?? process.cwd());
-  const entry = store.overrides.find((e) => e.ruleId === ruleId);
+  const config = readConfig(cwd ?? process.cwd());
+  const entry = config.overrides.find((e) => e.ruleId === ruleId);
   if (!entry) return false;
-  const expires = new Date(entry.expires);
-  if (expires < new Date()) return false;
-  return true;
+  return new Date(entry.expires) >= new Date();
 }

@@ -10,36 +10,14 @@ export interface InitOptions {
   json?: boolean;
 }
 
-function buildPolicyConfig(): string {
-  return JSON.stringify(
-    {
-      schemaVersion: "1.0.0",
-      policyCatalog: "v1",
-      failOn: ["critical"]
-    },
-    null,
-    2
-  );
-}
-
-function buildOverridesConfig(): string {
-  return JSON.stringify(
-    {
-      schemaVersion: "1.0.0",
-      overrides: []
-    },
-    null,
-    2
-  );
-}
-
-function buildProjectConfig(preset: InitPreset): string {
+function buildDepsentinelConfig(preset: InitPreset): string {
   return JSON.stringify(
     {
       schemaVersion: "1.0.0",
       preset,
-      policyFile: "depsentinel.policy.json",
-      overridesFile: "depsentinel.overrides.json"
+      policyCatalog: "v1",
+      failOn: ["critical"],
+      overrides: []
     },
     null,
     2
@@ -146,9 +124,7 @@ export function runInit(options: InitOptions = {}): { envelope: InitEnvelope; ou
   const facts = detectProjectFacts(cwd);
 
   const planned = [
-    planSafeFile(path.join(cwd, "depsentinel.policy.json"), `${buildPolicyConfig()}\n`),
-    planSafeFile(path.join(cwd, "depsentinel.overrides.json"), `${buildOverridesConfig()}\n`),
-    planSafeFile(path.join(cwd, "depsentinel.config.json"), `${buildProjectConfig(preset)}\n`),
+    planSafeFile(path.join(cwd, "depsentinel.json"), `${buildDepsentinelConfig(preset)}\n`),
     planSafeFile(path.join(cwd, ".npmrc"), buildNpmRc()),
     planSafeFile(path.join(cwd, ".npmignore"), buildNpmIgnore()),
     planSafeFile(path.join(cwd, ".github", "workflows", "depsentinel-ci.yml"), `${buildCiWorkflow()}\n`)

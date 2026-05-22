@@ -70,9 +70,9 @@ describe("override system", () => {
     expect(store.overrides[0].reason).toBe("second");
   });
 
-  it("persists to depsentinel.overrides.json", () => {
+  it("persists to depsentinel.json", () => {
     const dir = makeTempDir();
-    writeFileSync(path.join(dir, "depsentinel.overrides.json"), JSON.stringify({ schemaVersion: "1.0.0", overrides: [] }));
+    writeFileSync(path.join(dir, "depsentinel.json"), JSON.stringify({ schemaVersion: "1.0.0", preset: "base", overrides: [] }));
     overrideAdd({ cwd: dir, ruleId: "persist.test", reason: "persist check", expires: "2099-01-01" });
     const reloaded = overrideList(dir);
     expect(reloaded.overrides[0].ruleId).toBe("persist.test");

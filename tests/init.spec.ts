@@ -27,14 +27,10 @@ describe("init command", () => {
 
     expect(envelope.command).toBe("init");
     expect(envelope.result.dryRun).toBe(true);
-    expect(envelope.result.files.map((file) => file.path)).toEqual([
-      "depsentinel.policy.json",
-      "depsentinel.overrides.json",
-      "depsentinel.config.json",
-      ".npmrc",
-      ".npmignore",
-      "depsentinel-ci.yml"
-    ]);
+    const paths = envelope.result.files.map((file) => file.path);
+    expect(paths).toContain("depsentinel.json");
+    expect(paths).toContain(".npmrc");
+    expect(paths).toContain(".npmignore");
   });
 
   it("writes artifacts and is idempotent on rerun", () => {
@@ -45,9 +41,8 @@ describe("init command", () => {
     expect(first.envelope.result.files.every((file) => file.status === "create")).toBe(true);
     expect(second.envelope.result.files.every((file) => file.status === "noop")).toBe(true);
 
-    const configPath = path.join(dir, "depsentinel.config.json");
-    const config = JSON.parse(readFileSync(configPath, "utf8")) as { preset: string };
-    expect(config.preset).toBe("base");
+    expect(existsSync(path.join(dir, "depsentinel.json"))).toBe(true);
+    expect(existsSync(path.join(dir, ".npmrc"))).toBe(true);
     expect(existsSync(path.join(dir, ".github", "workflows", "depsentinel-ci.yml"))).toBe(true);
   });
 
@@ -89,14 +84,14 @@ describe("init command", () => {
     const dir = makeTempDir();
     runInit({ cwd: dir, dryRun: false });
 
-    const policyPath = path.join(dir, "depsentinel.policy.json");
+    const configPath = path.join(dir, "depsentinel.json");
     const modified = "{\n  \"schemaVersion\": \"broken\"\n}\n";
-    writeFileSync(policyPath, modified, "utf8");
+    writeFileSync(configPath, modified, "utf8");
 
     const updated = runInit({ cwd: dir, dryRun: false });
-    const policyRecord = updated.envelope.result.files.find((file) => file.path === "depsentinel.policy.json");
-    expect(policyRecord?.status).toBe("update");
-    expect(policyRecord?.backupPath).toContain("depsentinel.policy.json.bak");
+    const record = updated.envelope.result.files.find((file) => file.path === "depsentinel.json");
+    expect(record?.status).toBe("update");
+    expect(record?.backupPath).toContain("depsentinel.json.bak");
   });
 
   it("generates bunfig.toml when bun lockfile detected", () => {

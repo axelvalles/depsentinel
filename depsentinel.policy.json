@@ -1,7 +1,0 @@
-{
-  "schemaVersion": "1.0.0",
-  "policyCatalog": "v1",
-  "failOn": [
-    "critical"
-  ]
-}
