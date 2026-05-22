@@ -1,4 +1,4 @@
-import type { ScanEnvelope } from "../types/contracts.js";
+import type { InstallEnvelope, ScanEnvelope } from "../types/contracts.js";
 
 export function formatScanHuman(envelope: ScanEnvelope): string {
   const findingLines = envelope.result.findings.length
@@ -17,5 +17,31 @@ export function formatScanHuman(envelope: ScanEnvelope): string {
     findingLines,
     "remediation:",
     commandLines
+  ].join("\n");
+}
+
+export function formatInstallHuman(envelope: InstallEnvelope): string {
+  const findingLines = envelope.result.findings.length
+    ? envelope.result.findings
+        .map((f) => `- [${f.severity}] ${f.ruleId}: ${f.message}`)
+        .join("\n")
+    : "- none";
+
+  const remediationLines = envelope.result.remediationCommands.length
+    ? envelope.result.remediationCommands.map((cmd) => `- ${cmd}`).join("\n")
+    : "- none";
+
+  const overrideNote = envelope.result.forced ? " (forced override)" : "";
+
+  return [
+    "depsentinel install",
+    `decision: ${envelope.result.decision}${overrideNote}`,
+    `risk score: ${envelope.result.score}`,
+    `package manager: ${envelope.facts.packageManager}`,
+    "findings:",
+    findingLines,
+    "remediation:",
+    remediationLines,
+    `override: depsentinel install --force <package>`
   ].join("\n");
 }

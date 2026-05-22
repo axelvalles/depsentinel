@@ -1,7 +1,10 @@
+#!/usr/bin/env node
 import { cac } from "cac";
 import { runCi } from "./commands/ci.js";
 import { runInit } from "./commands/init.js";
 import { runScan } from "./commands/scan.js";
+import { runDoctor } from "./commands/doctor.js";
+import { runInstall } from "./commands/install.js";
 
 export function createCli(): ReturnType<typeof cac> {
   const cli = cac("depsentinel");
@@ -41,6 +44,31 @@ export function createCli(): ReturnType<typeof cac> {
         json: Boolean(options.json)
       });
       process.stdout.write(`${result.output}\n`);
+    });
+
+  cli
+    .command("install <package>", "Evaluate and execute safe dependency install")
+    .option("--force", "Override block/warn decision")
+    .option("--json", "Emit machine-readable JSON")
+    .action((pkg: string, options: { force?: boolean; json?: boolean }) => {
+      const result = runInstall({
+        packageName: pkg,
+        force: Boolean(options.force),
+        json: Boolean(options.json)
+      });
+      process.stdout.write(`${result.output}\n`);
+      process.exitCode = result.exitCode;
+    });
+
+  cli
+    .command("doctor", "Diagnose project against 26 security best practices")
+    .option("--json", "Emit machine-readable JSON")
+    .action((options: { json?: boolean }) => {
+      const result = runDoctor({ json: Boolean(options.json) });
+      process.stdout.write(`${result.output}\n`);
+      if (result.envelope.result.failed > 0) {
+        process.exitCode = 1;
+      }
     });
 
   return cli;
