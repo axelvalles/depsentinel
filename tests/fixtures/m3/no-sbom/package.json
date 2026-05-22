@@ -1,0 +1,1 @@
+{"name":"no-sbom","private":true,"scripts":{"test":"vitest"},"dependencies":{"lodash":"4.17.21"}}
