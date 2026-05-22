@@ -8,16 +8,25 @@ export interface InitOptions {
   preset?: InitPreset;
   dryRun?: boolean;
   json?: boolean;
+  context?: {
+    publishesToNpm: boolean;
+    publishFromCi: boolean;
+    usesOidcTrustedPublisher: boolean;
+  };
 }
 
-function buildDepsentinelConfig(preset: InitPreset): string {
+function buildDepsentinelConfig(
+  preset: InitPreset,
+  context: { publishesToNpm: boolean; publishFromCi: boolean; usesOidcTrustedPublisher: boolean }
+): string {
   return JSON.stringify(
     {
       schemaVersion: "1.0.0",
       preset,
       policyCatalog: "v1",
       failOn: ["critical"],
-      overrides: []
+      overrides: [],
+      context
     },
     null,
     2
@@ -124,9 +133,14 @@ export function runInit(options: InitOptions = {}): { envelope: InitEnvelope; ou
   const preset = options.preset ?? "base";
   const dryRun = options.dryRun ?? true;
   const facts = detectProjectFacts(cwd);
+  const context = options.context ?? {
+    publishesToNpm: true,
+    publishFromCi: true,
+    usesOidcTrustedPublisher: false
+  };
 
   const planned = [
-    planSafeFile(path.join(cwd, "depsentinel.json"), `${buildDepsentinelConfig(preset)}\n`),
+    planSafeFile(path.join(cwd, "depsentinel.json"), `${buildDepsentinelConfig(preset, context)}\n`),
     planSafeFile(path.join(cwd, ".npmrc"), buildNpmRc()),
     planSafeFile(path.join(cwd, ".npmignore"), buildNpmIgnore()),
     planSafeFile(path.join(cwd, ".github", "workflows", "depsentinel-ci.yml"), `${buildCiWorkflow()}\n`)

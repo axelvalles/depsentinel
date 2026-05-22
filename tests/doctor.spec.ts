@@ -132,4 +132,59 @@ describe("doctor command", () => {
     const { envelope } = runDoctor({ cwd: dir });
     expect(envelope.result.diagnoses.length).toBeGreaterThanOrEqual(15);
   });
+
+  it("fails when packageManager is missing in package.json", () => {
+    const dir = makeTempDir();
+    writePkg(dir);
+    writeLockfile(dir);
+    const { envelope } = runDoctor({ cwd: dir });
+    const pm = envelope.result.diagnoses.find((d) => d.id === "config.package-manager.missing");
+    expect(pm?.status).toBe("fail");
+  });
+
+  it("passes when packageManager is present and aligned", () => {
+    const dir = makeTempDir();
+    writePkg(dir, { packageManager: "npm@10.9.8" });
+    writeLockfile(dir);
+    const { envelope } = runDoctor({ cwd: dir });
+    const pm = envelope.result.diagnoses.find((d) => d.id === "config.package-manager.present");
+    expect(pm?.status).toBe("pass");
+  });
+
+  it("fails when packageManager conflicts with detected lockfile", () => {
+    const dir = makeTempDir();
+    writePkg(dir, { packageManager: "pnpm@11.2.2" });
+    writeLockfile(dir);
+    const { envelope } = runDoctor({ cwd: dir });
+    const pm = envelope.result.diagnoses.find((d) => d.id === "config.package-manager.mismatch");
+    expect(pm?.status).toBe("fail");
+    expect(pm?.severity).toBe("high");
+  });
+
+  it("skips publish-specific checks when context disables publishing", () => {
+    const dir = makeTempDir();
+    writePkg(dir, { private: true });
+    writeLockfile(dir);
+    writeFileSync(
+      path.join(dir, "depsentinel.json"),
+      JSON.stringify({ context: { publishesToNpm: false, publishFromCi: false, usesOidcTrustedPublisher: false } }, null, 2)
+    );
+    const { envelope } = runDoctor({ cwd: dir });
+    const provenance = envelope.result.diagnoses.find((d) => d.id === "ci.provenance.not-applicable");
+    const twoFa = envelope.result.diagnoses.find((d) => d.id === "maintainer.2fa.not-applicable");
+    expect(provenance?.status).toBe("skipped");
+    expect(twoFa?.status).toBe("skipped");
+  });
+
+  it("fails when multiple lockfiles are present", () => {
+    const dir = makeTempDir();
+    writePkg(dir);
+    writeFileSync(path.join(dir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    writeFileSync(path.join(dir, "package-lock.json"), JSON.stringify({ lockfileVersion: 3 }));
+
+    const { envelope } = runDoctor({ cwd: dir });
+    const mixed = envelope.result.diagnoses.find((d) => d.id === "dependencies.lockfile.mixed");
+    expect(mixed?.status).toBe("fail");
+    expect(mixed?.severity).toBe("high");
+  });
 });

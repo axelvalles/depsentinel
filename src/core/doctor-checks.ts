@@ -2,6 +2,12 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { DetectionFacts, DoctorDiagnosis } from "../types/contracts.js";
 
+interface DoctorContext {
+  publishesToNpm: boolean;
+  publishFromCi: boolean;
+  usesOidcTrustedPublisher: boolean;
+}
+
 function readJsonSafe<T>(filePath: string, fallback: T): T {
   try {
     return JSON.parse(readFileSync(filePath, "utf8")) as T;
@@ -46,23 +52,108 @@ function skip(
 }
 
 export function collectDiagnoses(rootDir: string, facts: DetectionFacts): DoctorDiagnosis[] {
+  const context = readProjectContext(rootDir);
   return [
+    checkMixedLockfiles(rootDir, facts),
+    checkPackageManagerField(rootDir, facts),
     checkNpmRc(rootDir),
-    checkNpmIgnore(rootDir),
-    checkPackageJsonFiles(rootDir),
+    checkNpmIgnore(rootDir, context),
+    checkPackageJsonFiles(rootDir, context),
     checkPnpmWorkspace(rootDir, facts),
     checkBunfig(rootDir, facts),
     checkYarnRc(rootDir, facts),
     checkLockfileCommitted(rootDir),
-    checkCiProvenance(rootDir),
+    checkCiProvenance(rootDir, context),
     checkLintLockfile(rootDir),
     checkSbomScript(rootDir),
     checkEnvPlaintext(rootDir),
     checkNpxHardening(),
-    checkNpm2fa(),
+    checkNpm2fa(context),
     checkDevContainer(rootDir),
     checkNodeModulesGitignored(rootDir)
   ];
+}
+
+function checkPackageManagerField(rootDir: string, facts: DetectionFacts): DoctorDiagnosis {
+  const pkgPath = path.join(rootDir, "package.json");
+  if (!existsSync(pkgPath)) {
+    return skip(
+      "config.package-manager.no-pkg",
+      "config",
+      "No package.json",
+      "Cannot verify packageManager field without package.json.",
+      "Ensure package.json exists."
+    );
+  }
+
+  const pkg = readJsonSafe(pkgPath, {} as { packageManager?: string });
+  const field = pkg.packageManager?.trim();
+  if (!field) {
+    return fail(
+      "config.package-manager.missing",
+      "config",
+      "medium",
+      "Missing packageManager field in package.json",
+      "Without packageManager, installs can drift across npm/pnpm/yarn/bun versions between machines and CI.",
+      "Add packageManager to package.json (for example: `pnpm@11.2.2` or `npm@10.x`)."
+    );
+  }
+
+  const declared = field.split("@")[0];
+  if (!["npm", "pnpm", "yarn", "bun"].includes(declared)) {
+    return fail(
+      "config.package-manager.invalid",
+      "config",
+      "medium",
+      `Invalid packageManager value: ${field}`,
+      "packageManager must declare npm, pnpm, yarn, or bun with a version.",
+      "Set packageManager to a valid value, like `pnpm@11.2.2`."
+    );
+  }
+
+  if (facts.packageManager !== "unknown" && declared !== facts.packageManager) {
+    return fail(
+      "config.package-manager.mismatch",
+      "config",
+      "high",
+      `packageManager mismatch: declared ${declared}, detected ${facts.packageManager}`,
+      "Declared package manager does not match lockfile-detected package manager.",
+      "Use one package manager strategy: align packageManager with lockfile, and remove conflicting lockfiles."
+    );
+  }
+
+  return pass("config.package-manager.present", "config", `packageManager pinned: ${field}`);
+}
+
+function checkMixedLockfiles(rootDir: string, facts: DetectionFacts): DoctorDiagnosis {
+  const lockfiles = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lockb"].filter((name) =>
+    existsSync(path.join(rootDir, name))
+  );
+
+  if (lockfiles.length <= 1) {
+    return pass("dependencies.lockfile.single", "dependencies", "Single lockfile strategy detected");
+  }
+
+  return fail(
+    "dependencies.lockfile.mixed",
+    "dependencies",
+    "high",
+    `Multiple lockfiles detected: ${lockfiles.join(", ")}`,
+    `Mixed lockfiles cause non-deterministic installs and tool mismatch (detected manager: ${facts.packageManager}).`,
+    "Keep exactly one lockfile for the chosen package manager and delete the others."
+  );
+}
+
+function readProjectContext(rootDir: string): DoctorContext {
+  const configPath = path.join(rootDir, "depsentinel.json");
+  const parsed = readJsonSafe(configPath, {
+    context: { publishesToNpm: true, publishFromCi: true, usesOidcTrustedPublisher: false }
+  } as { context?: Partial<DoctorContext> });
+  return {
+    publishesToNpm: parsed.context?.publishesToNpm ?? true,
+    publishFromCi: parsed.context?.publishFromCi ?? true,
+    usesOidcTrustedPublisher: parsed.context?.usesOidcTrustedPublisher ?? false
+  };
 }
 
 function checkNpmRc(rootDir: string): DoctorDiagnosis {
@@ -77,16 +168,25 @@ function checkNpmRc(rootDir: string): DoctorDiagnosis {
   return fail("config.npmrc.incomplete", "config", "medium", `.npmrc missing: ${missing.join(", ")}`, "Your .npmrc lacks key security settings.", "Run `depsentinel init` to regenerate .npmrc.");
 }
 
-function checkNpmIgnore(rootDir: string): DoctorDiagnosis {
+function checkNpmIgnore(rootDir: string, context: DoctorContext): DoctorDiagnosis {
+  if (!context.publishesToNpm) {
+    return skip(
+      "config.npmignore.non-publish",
+      "config",
+      "Package is not published to npm",
+      ".npmignore publish safeguards are not required for non-published apps.",
+      "Set `context.publishesToNpm=true` in depsentinel.json if this changes."
+    );
+  }
   if (existsSync(path.join(rootDir, ".npmignore"))) return pass("config.npmignore.present", "config", ".npmignore present");
   return fail("config.npmignore.missing", "config", "medium", "Missing .npmignore", "Without .npmignore, sensitive files may leak into published packages.", "Add a .npmignore file listing patterns to exclude from npm publish.");
 }
 
-function checkPackageJsonFiles(rootDir: string): DoctorDiagnosis {
+function checkPackageJsonFiles(rootDir: string, context: DoctorContext): DoctorDiagnosis {
   const pkg = path.join(rootDir, "package.json");
   if (!existsSync(pkg)) return skip("config.package-json.missing", "config", "No package.json found", "Cannot evaluate package.json settings.", "Ensure package.json exists.");
   const parsed = readJsonSafe(pkg, { files: undefined, private: undefined } as { files?: string[]; private?: boolean });
-  if (parsed.private) return pass("config.package-json.files-private", "config", "Private package (no publish risk)");
+  if (parsed.private || !context.publishesToNpm) return pass("config.package-json.files-private", "config", "Private/non-published package (no publish risk)");
   if (parsed.files && parsed.files.length > 0) return pass("config.package-json.files-present", "config", "package.json has `files` allowlist");
   return fail("config.package-json.files-missing", "config", "medium", "Missing `files` field in package.json", "Without `files`, npm publishes everything not excluded by .npmignore/.gitignore.", "Add a `files` array to package.json with only the dist/ entry point you want published.");
 }
@@ -133,7 +233,16 @@ function checkLockfileCommitted(rootDir: string): DoctorDiagnosis {
   return skip("ci.lockfile-committed.manual", "ci", "Verify lockfile committed", "Use `git ls-files package-lock.json` to confirm your lockfile is committed.", "Run `git add package-lock.json && git commit -m \"chore: add lockfile\"`.");
 }
 
-function checkCiProvenance(rootDir: string): DoctorDiagnosis {
+function checkCiProvenance(rootDir: string, context: DoctorContext): DoctorDiagnosis {
+  if (!context.publishesToNpm || !context.publishFromCi) {
+    return skip(
+      "ci.provenance.not-applicable",
+      "ci",
+      "Publish provenance not required",
+      "Project context says npm publishing from CI is disabled.",
+      "Set `context.publishesToNpm=true` and `context.publishFromCi=true` if you start publishing from CI."
+    );
+  }
   const workflowsDir = path.join(rootDir, ".github", "workflows");
   if (!existsSync(workflowsDir)) return fail("ci.provenance.no-workflows", "ci", "medium", "No GitHub Actions workflows found", "Cannot verify provenance/id-token configuration without CI workflows.", "Add `permissions: id-token: write` to your publish workflow for npm provenance.");
   const files = readdirSync(workflowsDir).filter((f: string) => f.endsWith(".yml") || f.endsWith(".yaml"));
@@ -183,7 +292,16 @@ function checkNpxHardening(): DoctorDiagnosis {
   return skip("maintainer.npx-hardening.manual", "maintainer", "Verify npx hardening", "npx can silently pull fresh malicious packages without lockfile verification.", "Create a dedicated workspace with pre-installed npx packages, and use `npx --offline --workspace <path>` to block network fetches. See docs/security-best-practices.md for step-by-step instructions.");
 }
 
-function checkNpm2fa(): DoctorDiagnosis {
+function checkNpm2fa(context: DoctorContext): DoctorDiagnosis {
+  if (!context.publishesToNpm) {
+    return skip(
+      "maintainer.2fa.not-applicable",
+      "maintainer",
+      "npm account 2FA not required",
+      "Project context says package is not published to npm.",
+      "Enable this check by setting `context.publishesToNpm=true` in depsentinel.json."
+    );
+  }
   return skip("maintainer.2fa.manual", "maintainer", "Verify npm account 2FA", "Accounts without 2FA are vulnerable to credential theft and package takeover.", "Run `npm profile enable-2fa auth-and-writes` to enable 2FA for your npm account.");
 }
 

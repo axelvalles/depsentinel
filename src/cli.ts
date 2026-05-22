@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { cac } from "cac";
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 import { runCi } from "./commands/ci.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runFix }    from "./commands/fix.js";
@@ -11,6 +13,16 @@ import { overrideAdd, overrideList, overrideRemove } from "./core/overrides.js";
 
 export function createCli(): ReturnType<typeof cac> {
   const cli = cac("depsentinel");
+
+  async function askYesNo(question: string, defaultYes: boolean): Promise<boolean> {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) return defaultYes;
+    const rl = createInterface({ input, output });
+    const suffix = defaultYes ? "[Y/n]" : "[y/N]";
+    const answer = (await rl.question(`${question} ${suffix} `)).trim().toLowerCase();
+    rl.close();
+    if (answer === "") return defaultYes;
+    return answer === "y" || answer === "yes" || answer === "s" || answer === "si";
+  }
 
   cli
     .command("scan", "Run dependency risk scan")
@@ -40,11 +52,23 @@ export function createCli(): ReturnType<typeof cac> {
     .option("--preset <preset>", "Preset to initialize (base|expo)")
     .option("--write", "Apply changes (default is dry-run)")
     .option("--json", "Emit machine-readable JSON")
-    .action((options: { preset?: "base" | "expo"; write?: boolean; json?: boolean }) => {
+    .action(async (options: { preset?: "base" | "expo"; write?: boolean; json?: boolean }) => {
+      const context = options.json
+        ? {
+            publishesToNpm: true,
+            publishFromCi: true,
+            usesOidcTrustedPublisher: false
+          }
+        : {
+            publishesToNpm: await askYesNo("Does this project publish packages to npm?", false),
+            publishFromCi: await askYesNo("Does this project publish from CI?", true),
+            usesOidcTrustedPublisher: await askYesNo("Does npm publish use OIDC Trusted Publisher?", false)
+          };
       const result = runInit({
         preset: options.preset,
         dryRun: !Boolean(options.write),
-        json: Boolean(options.json)
+        json: Boolean(options.json),
+        context
       });
       process.stdout.write(`${result.output}\n`);
     });
