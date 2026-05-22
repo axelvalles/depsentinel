@@ -17,7 +17,6 @@ describe("scan baseline", () => {
         "ci.sbom.missing",
         "config.files.allowlist",
         "dependency.protocol.disallowed",
-        "expo.baseline.workspace-required",
         "lockfile.required",
         "maintainer.env.plaintext",
       ]
@@ -65,8 +64,10 @@ describe("scan baseline", () => {
     expect(envelope.result.remediation_commands.length).toBeGreaterThan(0);
   });
 
-  it("includes expo baseline rule coverage", () => {
+  it("applies universal checks regardless of framework", () => {
     const { envelope } = runScan({ cwd: fixture("pnpm-expo") });
+    expect(envelope.facts.framework).toBe("expo");
+    expect(envelope.result.risk_score).toBeDefined();
     expect(envelope.result.findings.some((finding) => finding.ruleId.startsWith("expo."))).toBe(false);
   });
 });

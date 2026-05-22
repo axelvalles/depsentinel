@@ -51,9 +51,11 @@ describe("init command", () => {
     expect(existsSync(path.join(dir, ".github", "workflows", "depsentinel-ci.yml"))).toBe(true);
   });
 
-  it("creates pnpm workspace baseline for expo preset", () => {
+  it("generates pnpm-workspace.yaml when pnpm lockfile detected", () => {
     const dir = makeTempDir();
-    const result = runInit({ cwd: dir, preset: "expo", dryRun: false });
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "pnpm-proj" }));
+    writeFileSync(path.join(dir, "pnpm-lock.yaml"), "");
+    const result = runInit({ cwd: dir, dryRun: false });
 
     expect(result.envelope.result.files.some((file) => file.path === "pnpm-workspace.yaml")).toBe(true);
     expect(existsSync(path.join(dir, "pnpm-workspace.yaml"))).toBe(true);
@@ -61,6 +63,16 @@ describe("init command", () => {
     expect(content).toContain("minimumReleaseAge: 43200");
     expect(content).toContain("trustPolicy: no-downgrade");
     expect(content).toContain("blockExoticSubdeps: true");
+  });
+
+  it("generates pnpm-workspace.yaml when no PM detected (pnpm default)", () => {
+    const dir = makeTempDir();
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "unknown-pm" }));
+    const result = runInit({ cwd: dir, dryRun: false });
+
+    expect(result.envelope.result.files.some((file) => file.path === "pnpm-workspace.yaml")).toBe(true);
+    const content = readFileSync(path.join(dir, "pnpm-workspace.yaml"), "utf8");
+    expect(content).toContain("minimumReleaseAge");
   });
 
   it("creates .npmrc secure baseline", () => {

@@ -67,23 +67,6 @@ export const policyCatalogV1: PolicyRule[] = [
     }
   },
   {
-    id: "expo.baseline.workspace-required",
-    description: "Expo preset requires workspace baseline",
-    severity: "critical",
-    evaluate: (facts: DetectionFacts) => {
-      if (facts.framework !== "expo") {
-        return null;
-      }
-      if (facts.isWorkspace) {
-        return null;
-      }
-      return critical(
-        "expo.baseline.workspace-required",
-        "Expo preset requires workspace baseline (`workspaces` or `pnpm-workspace.yaml`)."
-      );
-    }
-  },
-  {
     id: "maintainer.env.plaintext",
     description: "Flag plaintext secrets in .env files",
     severity: "critical",

@@ -10,6 +10,7 @@ Goal: help any JS/TS project adopt secure defaults with low friction.
 - `scan`: returns `risk_score`, `proposed_diff`, and `remediation_commands`.
 - `init`: writes secure baseline files (`depsentinel.*`, `.npmrc`, CI workflow).
 - `init --preset expo`: writes `pnpm-workspace.yaml` hardened baseline.
+- `init`: writes `.npmrc`, `.npmignore`, CI workflow, and PM-specific configs (`pnpm-workspace.yaml` for pnpm, `bunfig.toml` for bun, `.yarnrc.yml` for yarn) automatically based on detection.
 - `ci`: fails (non-zero exit code) when critical policy findings exist.
 - `install <package>`: preflight safety check with `allow|warn|block` decision, optional tool adapters (`npq`, `sfw`, `lockfile-lint`), grace degradation diagnosics, and `--force` for override.
 - Unknown framework: no hard-fail; falls back to universal JS/TS baseline checks.
@@ -32,7 +33,9 @@ Why it matters:
 - `allow-git=none`: blocks git-based dependency resolution.
 - `min-release-age=3`: introduces a cooldown before fresh releases are installable.
 
-### `pnpm-workspace.yaml` (preset `expo`)
+### `pnpm-workspace.yaml` (when pnpm detected or unknown PM)
+
+Generated baseline (universal, not Expo-specific):
 
 Generated baseline:
 

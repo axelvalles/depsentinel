@@ -154,7 +154,7 @@ export function runInit(options: InitOptions = {}): { envelope: InitEnvelope; ou
     planSafeFile(path.join(cwd, ".github", "workflows", "depsentinel-ci.yml"), `${buildCiWorkflow()}\n`)
   ];
 
-  if (preset === "expo") {
+  if (facts.packageManager === "pnpm" || facts.packageManager === "unknown") {
     planned.push(planSafeFile(path.join(cwd, "pnpm-workspace.yaml"), buildPnpmWorkspace()));
   }
 
