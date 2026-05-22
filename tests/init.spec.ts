@@ -21,6 +21,8 @@ afterEach(() => {
 describe("init command", () => {
   it("plans artifacts in dry-run mode by default", () => {
     const dir = makeTempDir();
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "test" }));
+    writeFileSync(path.join(dir, "package-lock.json"), "{}");
     const { envelope } = runInit({ cwd: dir });
 
     expect(envelope.command).toBe("init");
@@ -30,6 +32,7 @@ describe("init command", () => {
       "depsentinel.overrides.json",
       "depsentinel.config.json",
       ".npmrc",
+      ".npmignore",
       "depsentinel-ci.yml"
     ]);
   });
@@ -82,5 +85,35 @@ describe("init command", () => {
     const policyRecord = updated.envelope.result.files.find((file) => file.path === "depsentinel.policy.json");
     expect(policyRecord?.status).toBe("update");
     expect(policyRecord?.backupPath).toContain("depsentinel.policy.json.bak");
+  });
+
+  it("generates bunfig.toml when bun lockfile detected", () => {
+    const dir = makeTempDir();
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "bun-proj" }));
+    writeFileSync(path.join(dir, "bun.lockb"), "");
+    const result = runInit({ cwd: dir, dryRun: false });
+    expect(result.envelope.result.files.some((file) => file.path === "bunfig.toml")).toBe(true);
+    const content = readFileSync(path.join(dir, "bunfig.toml"), "utf8");
+    expect(content).toContain("minimumReleaseAge");
+  });
+
+  it("generates .yarnrc.yml when yarn lockfile detected", () => {
+    const dir = makeTempDir();
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "yarn-proj" }));
+    writeFileSync(path.join(dir, "yarn.lock"), "");
+    const result = runInit({ cwd: dir, dryRun: false });
+    expect(result.envelope.result.files.some((file) => file.path === ".yarnrc.yml")).toBe(true);
+    const content = readFileSync(path.join(dir, ".yarnrc.yml"), "utf8");
+    expect(content).toContain("npmMinimalAgeGate");
+  });
+
+  it("creates .npmignore secure baseline", () => {
+    const dir = makeTempDir();
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "test" }));
+    writeFileSync(path.join(dir, "package-lock.json"), "{}");
+    runInit({ cwd: dir, dryRun: false });
+    const content = readFileSync(path.join(dir, ".npmignore"), "utf8");
+    expect(content).toContain(".env");
+    expect(content).toContain("node_modules/");
   });
 });

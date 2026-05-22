@@ -1,5 +1,6 @@
 import path from "node:path";
 import { applySafePlan, planSafeFile } from "../core/safe-write.js";
+import { detectProjectFacts } from "../core/detector.js";
 import type { InitEnvelope, InitFilePlan, InitPreset } from "../types/contracts.js";
 
 export interface InitOptions {
@@ -73,6 +74,32 @@ function buildPnpmWorkspace(): string {
   ].join("\n");
 }
 
+function buildBunfig(): string {
+  return [
+    "[install]",
+    "minimumReleaseAge = 259200",
+    ""
+  ].join("\n");
+}
+
+function buildYarnRc(): string {
+  return [
+    "npmMinimalAgeGate: \"3d\"",
+    ""
+  ].join("\n");
+}
+
+function buildNpmIgnore(): string {
+  return [
+    "# depsentinel secure npmignore",
+    ".env",
+    "*.log",
+    "coverage/",
+    "node_modules/",
+    ""
+  ].join("\n");
+}
+
 function buildCiWorkflow(): string {
   return [
     "name: depsentinel-ci",
@@ -114,17 +141,27 @@ export function runInit(options: InitOptions = {}): { envelope: InitEnvelope; ou
   const cwd = options.cwd ?? process.cwd();
   const preset = options.preset ?? "base";
   const dryRun = options.dryRun ?? true;
+  const facts = detectProjectFacts(cwd);
 
   const planned = [
     planSafeFile(path.join(cwd, "depsentinel.policy.json"), `${buildPolicyConfig()}\n`),
     planSafeFile(path.join(cwd, "depsentinel.overrides.json"), `${buildOverridesConfig()}\n`),
     planSafeFile(path.join(cwd, "depsentinel.config.json"), `${buildProjectConfig(preset)}\n`),
     planSafeFile(path.join(cwd, ".npmrc"), buildNpmRc()),
+    planSafeFile(path.join(cwd, ".npmignore"), buildNpmIgnore()),
     planSafeFile(path.join(cwd, ".github", "workflows", "depsentinel-ci.yml"), `${buildCiWorkflow()}\n`)
   ];
 
   if (preset === "expo") {
     planned.push(planSafeFile(path.join(cwd, "pnpm-workspace.yaml"), buildPnpmWorkspace()));
+  }
+
+  if (facts.packageManager === "bun") {
+    planned.push(planSafeFile(path.join(cwd, "bunfig.toml"), buildBunfig()));
+  }
+
+  if (facts.packageManager === "yarn") {
+    planned.push(planSafeFile(path.join(cwd, ".yarnrc.yml"), buildYarnRc()));
   }
 
   const applied = applySafePlan(planned, { dryRun });
