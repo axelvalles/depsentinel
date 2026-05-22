@@ -104,8 +104,10 @@ function buildCiWorkflow(): string {
     "          elif [ -f bun.lockb ]; then bun install --frozen-lockfile;",
     "          elif [ -f package-lock.json ]; then npm ci;",
     "          else corepack enable && pnpm install; fi",
+    "      - name: Build depsentinel CLI",
+    "        run: pnpm build",
     "      - name: Run depsentinel CI gate",
-    "        run: npx depsentinel ci --json"
+    "        run: node dist/cli.js ci --json"
   ].join("\n");
 }
 

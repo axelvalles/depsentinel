@@ -123,4 +123,13 @@ describe("init command", () => {
     expect(content).toContain(".env");
     expect(content).toContain("node_modules/");
   });
+
+  it("generates CI workflow using local built CLI", () => {
+    const dir = makeTempDir();
+    runInit({ cwd: dir, dryRun: false });
+    const workflow = readFileSync(path.join(dir, ".github", "workflows", "depsentinel-ci.yml"), "utf8");
+    expect(workflow).toContain("pnpm build");
+    expect(workflow).toContain("node dist/cli.js ci --json");
+    expect(workflow).not.toContain("npx depsentinel ci --json");
+  });
 });

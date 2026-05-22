@@ -22,6 +22,7 @@ npx depsentinel doctor        # full 26-point security diagnosis
 | `install <pkg>` | Preflight check before adding a dependency (`allow\|warn\|block`) |
 | `doctor` | Diagnose project against 26 npm security best practices |
 | `fix --write` | Auto-apply known remediations (`.npmrc`, scripts, configs) |
+| `trust add\|remove\|list` | Manage allow/ignore build-script trust per package manager |
 | `override add\|remove\|list` | Manage policy exceptions with reason and expiration |
 
 ## What it enforces

@@ -6,6 +6,7 @@ import { runFix }    from "./commands/fix.js";
 import { runInit }   from "./commands/init.js";
 import { runInstall } from "./commands/install.js";
 import { runScan } from "./commands/scan.js";
+import { runTrust } from "./commands/trust.js";
 import { overrideAdd, overrideList, overrideRemove } from "./core/overrides.js";
 
 export function createCli(): ReturnType<typeof cac> {
@@ -80,6 +81,34 @@ export function createCli(): ReturnType<typeof cac> {
     .action((options: { write?: boolean; json?: boolean }) => {
       const result = runFix({ dryRun: !options.write, json: Boolean(options.json) });
       process.stdout.write(`${result.output}\n`);
+    });
+
+  cli
+    .command("trust <action> [package]", "Manage package-manager trust lists")
+    .option("--mode <mode>", "Mode: allow-build | ignore-build")
+    .option("--pm <pm>", "Package manager override")
+    .option("--write", "Apply changes (default is dry-run)")
+    .option("--json", "Emit machine-readable JSON")
+    .action((
+      action: "add" | "remove" | "list",
+      packageName: string | undefined,
+      options: {
+        mode?: "allow-build" | "ignore-build";
+        pm?: "npm" | "pnpm" | "yarn" | "bun" | "unknown";
+        write?: boolean;
+        json?: boolean;
+      }
+    ) => {
+      const result = runTrust({
+        action,
+        packageName,
+        mode: options.mode,
+        manager: options.pm,
+        dryRun: !Boolean(options.write),
+        json: Boolean(options.json)
+      });
+      process.stdout.write(`${result.output}\n`);
+      process.exitCode = result.exitCode;
     });
 
   cli
