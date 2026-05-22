@@ -1,8 +1,27 @@
 {
   "name": "depsentinel",
   "version": "0.1.0",
-  "description": "JS/TS supply-chain hardening CLI for scan, init, and CI policy gating",
+  "description": "JS/TS supply-chain hardening CLI — scan, secure, and enforce dependency policies",
   "license": "MIT",
+  "author": "depsentinel contributors",
+  "keywords": [
+    "npm",
+    "pnpm",
+    "yarn",
+    "bun",
+    "supply-chain",
+    "security",
+    "cli",
+    "hardening",
+    "lockfile",
+    "dependencies",
+    "audit"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/depsentinel/depsentinel"
+  },
+  "homepage": "https://github.com/depsentinel/depsentinel#readme",
   "type": "module",
   "bin": {
     "depsentinel": "./dist/cli.js"
@@ -13,11 +32,12 @@
   },
   "files": [
     "dist",
-    "docs/security-best-practices.md"
+    "docs/security-best-practices.md",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "npm run build",
+    "prepack": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
