@@ -56,13 +56,13 @@ export function createCli(): ReturnType<typeof cac> {
       const context = options.json
         ? {
             publishesToNpm: true,
-            publishFromCi: true,
-            usesOidcTrustedPublisher: false
+            usesOidcTrustedPublisher: false,
+            usesDevContainer: false
           }
         : {
             publishesToNpm: await askYesNo("Does this project publish packages to npm?", false),
-            publishFromCi: await askYesNo("Does this project publish from CI?", true),
-            usesOidcTrustedPublisher: await askYesNo("Does npm publish use OIDC Trusted Publisher?", false)
+            usesOidcTrustedPublisher: await askYesNo("Does npm publish use OIDC Trusted Publisher?", false),
+            usesDevContainer: await askYesNo("Does this project use Dev Containers for local development?", false)
           };
       const result = runInit({
         preset: options.preset,

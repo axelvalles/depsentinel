@@ -11,14 +11,18 @@ export interface InitOptions {
   json?: boolean;
   context?: {
     publishesToNpm: boolean;
-    publishFromCi: boolean;
     usesOidcTrustedPublisher: boolean;
+    usesDevContainer: boolean;
   };
 }
 
 function buildDepsentinelConfig(
   preset: InitPreset,
-  context: { publishesToNpm: boolean; publishFromCi: boolean; usesOidcTrustedPublisher: boolean }
+  context: {
+    publishesToNpm: boolean;
+    usesOidcTrustedPublisher: boolean;
+    usesDevContainer: boolean;
+  }
 ): string {
   return JSON.stringify(
     {
@@ -187,8 +191,8 @@ export function runInit(options: InitOptions = {}): { envelope: InitEnvelope; ou
   const facts = detectProjectFacts(cwd);
   const context = options.context ?? {
     publishesToNpm: true,
-    publishFromCi: true,
-    usesOidcTrustedPublisher: false
+    usesOidcTrustedPublisher: false,
+    usesDevContainer: false
   };
 
   const planned = [

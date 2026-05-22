@@ -38,10 +38,14 @@ describe("init command", () => {
     runInit({ cwd: dir, dryRun: false });
     const configPath = path.join(dir, "depsentinel.json");
     const config = JSON.parse(readFileSync(configPath, "utf8")) as {
-      context: { publishesToNpm: boolean; publishFromCi: boolean; usesOidcTrustedPublisher: boolean };
+      context: {
+        publishesToNpm: boolean;
+        usesOidcTrustedPublisher: boolean;
+        usesDevContainer: boolean;
+      };
     };
     expect(config.context.publishesToNpm).toBe(true);
-    expect(config.context.publishFromCi).toBe(true);
+    expect(config.context.usesDevContainer).toBe(false);
   });
 
   it("writes artifacts and is idempotent on rerun", () => {

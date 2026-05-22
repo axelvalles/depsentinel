@@ -167,7 +167,7 @@ describe("doctor command", () => {
     writeLockfile(dir);
     writeFileSync(
       path.join(dir, "depsentinel.json"),
-      JSON.stringify({ context: { publishesToNpm: false, publishFromCi: false, usesOidcTrustedPublisher: false } }, null, 2)
+      JSON.stringify({ context: { publishesToNpm: false, usesOidcTrustedPublisher: false } }, null, 2)
     );
     const { envelope } = runDoctor({ cwd: dir });
     const provenance = envelope.result.diagnoses.find((d) => d.id === "ci.provenance.not-applicable");

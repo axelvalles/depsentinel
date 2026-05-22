@@ -4,8 +4,8 @@ import type { DetectionFacts, DoctorDiagnosis } from "../types/contracts.js";
 
 interface DoctorContext {
   publishesToNpm: boolean;
-  publishFromCi: boolean;
   usesOidcTrustedPublisher: boolean;
+  usesDevContainer: boolean;
 }
 
 function readJsonSafe<T>(filePath: string, fallback: T): T {
@@ -69,7 +69,7 @@ export function collectDiagnoses(rootDir: string, facts: DetectionFacts): Doctor
     checkEnvPlaintext(rootDir),
     checkNpxHardening(),
     checkNpm2fa(context),
-    checkDevContainer(rootDir),
+    checkDevContainer(rootDir, context),
     checkNodeModulesGitignored(rootDir)
   ];
 }
@@ -147,12 +147,12 @@ function checkMixedLockfiles(rootDir: string, facts: DetectionFacts): DoctorDiag
 function readProjectContext(rootDir: string): DoctorContext {
   const configPath = path.join(rootDir, "depsentinel.json");
   const parsed = readJsonSafe(configPath, {
-    context: { publishesToNpm: true, publishFromCi: true, usesOidcTrustedPublisher: false }
+    context: { publishesToNpm: true, usesOidcTrustedPublisher: false, usesDevContainer: false }
   } as { context?: Partial<DoctorContext> });
   return {
     publishesToNpm: parsed.context?.publishesToNpm ?? true,
-    publishFromCi: parsed.context?.publishFromCi ?? true,
-    usesOidcTrustedPublisher: parsed.context?.usesOidcTrustedPublisher ?? false
+    usesOidcTrustedPublisher: parsed.context?.usesOidcTrustedPublisher ?? false,
+    usesDevContainer: parsed.context?.usesDevContainer ?? false
   };
 }
 
@@ -234,13 +234,13 @@ function checkLockfileCommitted(rootDir: string): DoctorDiagnosis {
 }
 
 function checkCiProvenance(rootDir: string, context: DoctorContext): DoctorDiagnosis {
-  if (!context.publishesToNpm || !context.publishFromCi) {
+  if (!context.publishesToNpm) {
     return skip(
       "ci.provenance.not-applicable",
       "ci",
       "Publish provenance not required",
-      "Project context says npm publishing from CI is disabled.",
-      "Set `context.publishesToNpm=true` and `context.publishFromCi=true` if you start publishing from CI."
+      "Project context says npm publishing is disabled.",
+      "Set `context.publishesToNpm=true` in depsentinel.json if this changes."
     );
   }
   const workflowsDir = path.join(rootDir, ".github", "workflows");
@@ -305,7 +305,16 @@ function checkNpm2fa(context: DoctorContext): DoctorDiagnosis {
   return skip("maintainer.2fa.manual", "maintainer", "Verify npm account 2FA", "Accounts without 2FA are vulnerable to credential theft and package takeover.", "Run `npm profile enable-2fa auth-and-writes` to enable 2FA for your npm account.");
 }
 
-function checkDevContainer(rootDir: string): DoctorDiagnosis {
+function checkDevContainer(rootDir: string, context: DoctorContext): DoctorDiagnosis {
+  if (!context.usesDevContainer) {
+    return skip(
+      "maintainer.devcontainer.not-required",
+      "maintainer",
+      "Dev Container not required by project context",
+      "Project context says Dev Containers are not part of local development workflow.",
+      "Set `context.usesDevContainer=true` in depsentinel.json if you adopt Dev Containers."
+    );
+  }
   const devContainerPath = path.join(rootDir, ".devcontainer", "devcontainer.json");
   if (existsSync(devContainerPath)) return pass("maintainer.devcontainer.present", "maintainer", "Dev Container configured");
   return fail("maintainer.devcontainer.missing", "maintainer", "low", "No Dev Container configured", "Dev Containers isolate npm execution from host system, limiting malware blast radius.", "Create `.devcontainer/devcontainer.json` with a Node.js image and `postCreateCommand: npm ci`.");
