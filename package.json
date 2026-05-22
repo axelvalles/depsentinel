@@ -19,9 +19,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/depsentinel/depsentinel"
+    "url": "https://github.com/axelvalles/depsentinel"
   },
-  "homepage": "https://github.com/depsentinel/depsentinel#readme",
+  "homepage": "https://github.com/axelvalles/depsentinel#readme",
   "type": "module",
   "bin": {
     "depsentinel": "./dist/cli.js"
