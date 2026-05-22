@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { applySafePlan, planSafeFile } from "../core/safe-write.js";
 import { detectProjectFacts } from "../core/detector.js";
@@ -43,6 +44,29 @@ function buildNpmRc(): string {
   ].join("\n");
 }
 
+function mergeNpmRc(existing: string): string {
+  const lines = existing.split(/\r?\n/);
+  const keys = new Map<string, number>();
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = lines[i]?.match(/^\s*([a-zA-Z0-9-]+)\s*=\s*(.*)\s*$/);
+    if (m) keys.set(m[1], i);
+  }
+
+  const required: Array<[string, string]> = [
+    ["ignore-scripts", "true"],
+    ["allow-git", "none"],
+    ["min-release-age", "3"]
+  ];
+
+  for (const [key, value] of required) {
+    if (!keys.has(key)) {
+      lines.push(`${key}=${value}`);
+    }
+  }
+
+  return `${lines.join("\n").replace(/\n*$/, "\n")}`;
+}
+
 function buildPnpmWorkspace(): string {
   return [
     "packages:",
@@ -59,6 +83,34 @@ function buildPnpmWorkspace(): string {
     "  unrs-resolver: true",
     ""
   ].join("\n");
+}
+
+function mergePnpmWorkspace(existing: string): string {
+  const lines = existing.split(/\r?\n/);
+  const has = (k: string) => lines.some((line) => line.trim().startsWith(`${k}:`));
+
+  if (!has("minimumReleaseAge")) lines.push("minimumReleaseAge: 43200");
+  if (!has("trustPolicy")) lines.push("trustPolicy: no-downgrade");
+  if (!has("blockExoticSubdeps")) lines.push("blockExoticSubdeps: true");
+  if (!has("strictDepBuilds")) lines.push("strictDepBuilds: true");
+
+  const allowIdx = lines.findIndex((line) => line.trim() === "allowBuilds:");
+  if (allowIdx === -1) {
+    lines.push("allowBuilds:");
+    lines.push("  esbuild: true");
+    lines.push("  rolldown: true");
+    lines.push("  unrs-resolver: true");
+  } else {
+    const addAllow = (pkg: string) => {
+      const exists = lines.some((line) => line.trim().startsWith(`${pkg}:`));
+      if (!exists) lines.splice(allowIdx + 1, 0, `  ${pkg}: true`);
+    };
+    addAllow("esbuild");
+    addAllow("rolldown");
+    addAllow("unrs-resolver");
+  }
+
+  return `${lines.join("\n").replace(/\n*$/, "\n")}`;
 }
 
 function buildBunfig(): string {
@@ -141,13 +193,25 @@ export function runInit(options: InitOptions = {}): { envelope: InitEnvelope; ou
 
   const planned = [
     planSafeFile(path.join(cwd, "depsentinel.json"), `${buildDepsentinelConfig(preset, context)}\n`),
-    planSafeFile(path.join(cwd, ".npmrc"), buildNpmRc()),
+    planSafeFile(
+      path.join(cwd, ".npmrc"),
+      existsSync(path.join(cwd, ".npmrc")) ? mergeNpmRc(readFileSync(path.join(cwd, ".npmrc"), "utf8")) : buildNpmRc(),
+      { backupOnUpdate: false }
+    ),
     planSafeFile(path.join(cwd, ".npmignore"), buildNpmIgnore()),
     planSafeFile(path.join(cwd, ".github", "workflows", "depsentinel-ci.yml"), `${buildCiWorkflow()}\n`)
   ];
 
   if (facts.packageManager === "pnpm" || facts.packageManager === "unknown") {
-    planned.push(planSafeFile(path.join(cwd, "pnpm-workspace.yaml"), buildPnpmWorkspace()));
+    planned.push(
+      planSafeFile(
+        path.join(cwd, "pnpm-workspace.yaml"),
+        existsSync(path.join(cwd, "pnpm-workspace.yaml"))
+          ? mergePnpmWorkspace(readFileSync(path.join(cwd, "pnpm-workspace.yaml"), "utf8"))
+          : buildPnpmWorkspace(),
+        { backupOnUpdate: false }
+      )
+    );
   }
 
   if (facts.packageManager === "bun") {

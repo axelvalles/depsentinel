@@ -14,6 +14,10 @@ export interface SafeWriteOptions {
   dryRun?: boolean;
 }
 
+export interface PlanSafeFileOptions {
+  backupOnUpdate?: boolean;
+}
+
 function nextBackupPath(filePath: string): string {
   let candidate = `${filePath}.bak`;
   let counter = 1;
@@ -24,7 +28,7 @@ function nextBackupPath(filePath: string): string {
   return candidate;
 }
 
-export function planSafeFile(filePath: string, content: string): PlannedFile {
+export function planSafeFile(filePath: string, content: string, options: PlanSafeFileOptions = {}): PlannedFile {
   if (!existsSync(filePath)) {
     return { path: filePath, content, status: "create" };
   }
@@ -38,7 +42,7 @@ export function planSafeFile(filePath: string, content: string): PlannedFile {
     path: filePath,
     content,
     status: "update",
-    backupPath: nextBackupPath(filePath)
+    backupPath: options.backupOnUpdate === false ? undefined : nextBackupPath(filePath)
   };
 }
 

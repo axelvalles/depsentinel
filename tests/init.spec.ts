@@ -105,6 +105,31 @@ describe("init command", () => {
     expect(record?.backupPath).toContain("depsentinel.json.bak");
   });
 
+  it("merges npmrc and pnpm workspace without creating backups", () => {
+    const dir = makeTempDir();
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "pnpm-proj" }));
+    writeFileSync(path.join(dir, "pnpm-lock.yaml"), "", "utf8");
+    writeFileSync(path.join(dir, ".npmrc"), "save-exact=true\n", "utf8");
+    writeFileSync(path.join(dir, "pnpm-workspace.yaml"), "packages:\n  - \".\"\nallowBuilds:\n  sharp: true\n", "utf8");
+
+    const result = runInit({ cwd: dir, dryRun: false });
+    const npmrcPlan = result.envelope.result.files.find((f) => f.path === ".npmrc");
+    const pnpmPlan = result.envelope.result.files.find((f) => f.path === "pnpm-workspace.yaml");
+
+    expect(npmrcPlan?.status).toBe("update");
+    expect(npmrcPlan?.backupPath).toBeUndefined();
+    expect(pnpmPlan?.status).toBe("update");
+    expect(pnpmPlan?.backupPath).toBeUndefined();
+
+    const npmrc = readFileSync(path.join(dir, ".npmrc"), "utf8");
+    expect(npmrc).toContain("save-exact=true");
+    expect(npmrc).toContain("ignore-scripts=true");
+
+    const pnpm = readFileSync(path.join(dir, "pnpm-workspace.yaml"), "utf8");
+    expect(pnpm).toContain("sharp: true");
+    expect(pnpm).toContain("minimumReleaseAge: 43200");
+  });
+
   it("generates bunfig.toml when bun lockfile detected", () => {
     const dir = makeTempDir();
     writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "bun-proj" }));

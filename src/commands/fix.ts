@@ -84,7 +84,7 @@ function collectFixPlans(cwd: string) {
   }
 
   if (pkgDirty) {
-    plans.push(planSafeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n"));
+    plans.push(planSafeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n", { backupOnUpdate: false }));
   }
 
   // Bunfig
