@@ -2,6 +2,7 @@
   "name": "depsentinel",
   "version": "0.1.0",
   "description": "JS/TS supply-chain hardening CLI for scan, init, and CI policy gating",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "depsentinel": "./dist/cli.js"

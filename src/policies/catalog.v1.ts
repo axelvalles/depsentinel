@@ -3,6 +3,14 @@ import path from "node:path";
 import type { DetectionFacts, Finding, PolicyRule } from "../types/contracts.js";
 import { fixtureAdvisorySource } from "../advisories/fixture-source.js";
 
+function readJsonSafe<T>(filePath: string, fallback: T): T {
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8")) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 const DISALLOWED_PROTOCOLS = ["git+", "http:", "https:", "file:", "link:", "workspace:"];
 
 function critical(ruleId: string, message: string, meta?: Finding["meta"]): Finding {
@@ -95,7 +103,7 @@ export const policyCatalogV1: PolicyRule[] = [
     evaluate: (facts: DetectionFacts) => {
       const pkgPath = path.join(facts.rootDir, "package.json");
       if (!existsSync(pkgPath)) return null;
-      const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { scripts?: Record<string, string> };
+      const pkg = readJsonSafe(pkgPath, {} as { scripts?: Record<string, string> });
       const hasSbom = pkg.scripts?.["sbom"] ?? pkg.scripts?.["generate:sbom"];
       if (hasSbom) return null;
       return {
@@ -112,7 +120,7 @@ export const policyCatalogV1: PolicyRule[] = [
     evaluate: (facts: DetectionFacts) => {
       const pkgPath = path.join(facts.rootDir, "package.json");
       if (!existsSync(pkgPath)) return null;
-      const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { files?: string[]; private?: boolean };
+      const pkg = readJsonSafe(pkgPath, {} as { files?: string[]; private?: boolean });
       if (pkg.private) return null;
       if (pkg.files && pkg.files.length > 0) return null;
       return {

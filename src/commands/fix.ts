@@ -26,7 +26,11 @@ interface PkgJson {
 
 function readJsonSafe(filePath: string): Record<string, unknown> {
   if (!existsSync(filePath)) return {};
-  return JSON.parse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 function collectFixPlans(cwd: string) {

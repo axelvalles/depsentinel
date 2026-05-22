@@ -41,6 +41,12 @@ function buildRemediationCommands(packageManager: string): string[] {
   return [install, "npm audit --audit-level=critical"];
 }
 
+const PACKAGE_NAME_RE = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
+
+function isValidPackageName(name: string): boolean {
+  return PACKAGE_NAME_RE.test(name) && name.length <= 214 && !name.startsWith(".") && !name.startsWith("_");
+}
+
 export function runInstall(options: InstallOptions): {
   envelope: InstallEnvelope;
   output: string;
@@ -49,6 +55,12 @@ export function runInstall(options: InstallOptions): {
   const cwd = options.cwd ?? process.cwd();
   const packageName = options.packageName;
   const force = options.force ?? false;
+
+  if (!isValidPackageName(packageName)) {
+    throw new Error(
+      `Invalid package name: "${packageName}". Must be a valid npm package name (e.g. "lodash" or "@scope/pkg").`
+    );
+  }
 
   const facts = detectProjectFacts(cwd);
   const findings = evaluatePolicies(facts, policyCatalogV1);

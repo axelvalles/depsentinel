@@ -11,12 +11,16 @@ const LOCKFILES: Array<{ name: string; manager: PackageManager }> = [
 
 export function detectProjectFacts(rootDir: string): DetectionFacts {
   const packageJsonPath = path.join(rootDir, "package.json");
-  const pkgRaw = existsSync(packageJsonPath) ? readFileSync(packageJsonPath, "utf8") : "{}";
-  const pkg = JSON.parse(pkgRaw) as {
+  let pkg: {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
     workspaces?: unknown;
-  };
+  } = {};
+  try {
+    pkg = JSON.parse(existsSync(packageJsonPath) ? readFileSync(packageJsonPath, "utf8") : "{}") as typeof pkg;
+  } catch {
+    pkg = {};
+  }
 
   const lock = LOCKFILES.find((entry) => existsSync(path.join(rootDir, entry.name))) ?? null;
   const dependencies = {

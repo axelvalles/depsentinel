@@ -1,6 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { DetectionFacts, DoctorDiagnosis } from "../types/contracts.js";
+
+function readJsonSafe<T>(filePath: string, fallback: T): T {
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8")) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 function pass(id: string, category: DoctorDiagnosis["category"], title: string): DoctorDiagnosis {
   return {
@@ -77,8 +85,7 @@ function checkNpmIgnore(rootDir: string): DoctorDiagnosis {
 function checkPackageJsonFiles(rootDir: string): DoctorDiagnosis {
   const pkg = path.join(rootDir, "package.json");
   if (!existsSync(pkg)) return skip("config.package-json.missing", "config", "No package.json found", "Cannot evaluate package.json settings.", "Ensure package.json exists.");
-  const content = readFileSync(pkg, "utf8");
-  const parsed = JSON.parse(content) as { files?: string[]; private?: boolean };
+  const parsed = readJsonSafe(pkg, { files: undefined, private: undefined } as { files?: string[]; private?: boolean });
   if (parsed.private) return pass("config.package-json.files-private", "config", "Private package (no publish risk)");
   if (parsed.files && parsed.files.length > 0) return pass("config.package-json.files-present", "config", "package.json has `files` allowlist");
   return fail("config.package-json.files-missing", "config", "medium", "Missing `files` field in package.json", "Without `files`, npm publishes everything not excluded by .npmignore/.gitignore.", "Add a `files` array to package.json with only the dist/ entry point you want published.");
@@ -129,7 +136,7 @@ function checkLockfileCommitted(rootDir: string): DoctorDiagnosis {
 function checkCiProvenance(rootDir: string): DoctorDiagnosis {
   const workflowsDir = path.join(rootDir, ".github", "workflows");
   if (!existsSync(workflowsDir)) return fail("ci.provenance.no-workflows", "ci", "medium", "No GitHub Actions workflows found", "Cannot verify provenance/id-token configuration without CI workflows.", "Add `permissions: id-token: write` to your publish workflow for npm provenance.");
-  const files = require("node:fs").readdirSync(workflowsDir).filter((f: string) => f.endsWith(".yml") || f.endsWith(".yaml"));
+  const files = readdirSync(workflowsDir).filter((f: string) => f.endsWith(".yml") || f.endsWith(".yaml"));
   let hasIdToken = false;
   for (const file of files) {
     const content = readFileSync(path.join(workflowsDir, file), "utf8");
@@ -142,8 +149,7 @@ function checkCiProvenance(rootDir: string): DoctorDiagnosis {
 function checkLintLockfile(rootDir: string): DoctorDiagnosis {
   const pkgPath = path.join(rootDir, "package.json");
   if (!existsSync(pkgPath)) return skip("ci.lint-lockfile.no-pkg", "ci", "No package.json", "Cannot check lockfile lint scripts.", "Ensure package.json exists.");
-  const content = readFileSync(pkgPath, "utf8");
-  const pkg = JSON.parse(content) as { scripts?: Record<string, string>; devDependencies?: Record<string, string> };
+  const pkg = readJsonSafe(pkgPath, {} as { scripts?: Record<string, string>; devDependencies?: Record<string, string> });
   const hasScript = pkg.scripts?.["lint:lockfile"] ?? false;
   const hasDep = pkg.devDependencies?.["lockfile-lint"] ?? false;
   if (hasScript && hasDep) return pass("ci.lint-lockfile.configured", "ci", "lockfile-lint configured in package.json");
@@ -154,8 +160,7 @@ function checkLintLockfile(rootDir: string): DoctorDiagnosis {
 function checkSbomScript(rootDir: string): DoctorDiagnosis {
   const pkgPath = path.join(rootDir, "package.json");
   if (!existsSync(pkgPath)) return skip("ci.sbom.no-pkg", "ci", "No package.json", "Cannot check SBOM scripts.", "Ensure package.json exists.");
-  const content = readFileSync(pkgPath, "utf8");
-  const pkg = JSON.parse(content) as { scripts?: Record<string, string> };
+  const pkg = readJsonSafe(pkgPath, {} as { scripts?: Record<string, string> });
   const hasSbom = pkg.scripts?.["sbom"] ?? pkg.scripts?.["generate:sbom"] ?? false;
   if (hasSbom) return pass("ci.sbom.present", "ci", "SBOM generation script configured");
   return fail("ci.sbom.missing", "ci", "low", "No SBOM generation script", "SBOM helps track what was built and where inputs originated (supply chain transparency).", "Add a script: `\"sbom\": \"npx @cyclonedx/cyclonedx-npm --validate > sbom.json\"`.");

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { cac } from "cac";
 import { runCi } from "./commands/ci.js";
-import { runInit } from "./commands/init.js";
-import { runScan } from "./commands/scan.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runFix }    from "./commands/fix.js";
+import { runInit }   from "./commands/init.js";
 import { runInstall } from "./commands/install.js";
+import { runScan } from "./commands/scan.js";
 import { overrideAdd, overrideList, overrideRemove } from "./core/overrides.js";
 
 export function createCli(): ReturnType<typeof cac> {
@@ -119,8 +119,6 @@ export function createCli(): ReturnType<typeof cac> {
   return cli;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const cli = createCli();
-  cli.help();
-  cli.parse();
-}
+const cli = createCli();
+cli.help();
+cli.parse();
