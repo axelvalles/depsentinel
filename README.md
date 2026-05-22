@@ -10,6 +10,7 @@ npx depsentinel init --write  # generate secure baseline
 npx depsentinel ci --json     # fail CI if critical policies violated
 npx depsentinel install express  # check package safety before adding it
 npx depsentinel doctor        # full 26-point security diagnosis
+npx depsentinel trust list    # inspect build-script trust entries
 ```
 
 ## Commands
@@ -24,6 +25,14 @@ npx depsentinel doctor        # full 26-point security diagnosis
 | `fix --write` | Auto-apply known remediations (`.npmrc`, scripts, configs) |
 | `trust add\|remove\|list` | Manage allow/ignore build-script trust per package manager |
 | `override add\|remove\|list` | Manage policy exceptions with reason and expiration |
+
+### Trust examples
+
+```bash
+depsentinel trust add sharp --mode allow-build --write
+depsentinel trust add fsevents --mode ignore-build --write
+depsentinel trust list --pm pnpm
+```
 
 ## What it enforces
 
