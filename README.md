@@ -4,13 +4,28 @@
 
 ## Quick start
 
+### 1) Scan the project
+
 ```bash
-npx depsentinel scan          # diagnose your project
-npx depsentinel init --write  # generate secure baseline
-npx depsentinel ci --json     # fail CI if critical policies violated
-npx depsentinel install express  # check package safety before adding it
-npx depsentinel doctor        # full 26-point security diagnosis
-npx depsentinel trust list    # inspect build-script trust entries
+npx depsentinel scan
+```
+
+### 2) Generate secure defaults
+
+```bash
+npx depsentinel init --write
+```
+
+### 3) Run full diagnosis
+
+```bash
+npx depsentinel doctor
+```
+
+### 4) Add CI policy gate
+
+```bash
+npx depsentinel ci --json
 ```
 
 ## Commands
@@ -32,6 +47,21 @@ npx depsentinel trust list    # inspect build-script trust entries
 depsentinel trust add sharp --mode allow-build --write
 depsentinel trust add fsevents --mode ignore-build --write
 depsentinel trust list --pm pnpm
+```
+
+### Typical flows
+
+```bash
+# First-time hardening
+depsentinel scan
+depsentinel init --write
+depsentinel doctor
+
+# Dependency preflight
+depsentinel install <package>
+
+# CI gate
+depsentinel ci --json
 ```
 
 ## What it enforces
