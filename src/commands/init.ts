@@ -51,7 +51,7 @@ function buildNpmRc(): string {
     "# depsentinel npm security baseline",
     "ignore-scripts=true",
     "allow-git=none",
-    "min-release-age=30",
+    "min-release-age=3",
     ""
   ].join("\n");
 }
