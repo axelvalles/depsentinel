@@ -70,7 +70,7 @@ describe("init command", () => {
     const npmrc = readFileSync(path.join(dir, ".npmrc"), "utf8");
     expect(npmrc).toContain("ignore-scripts=true");
     expect(npmrc).toContain("allow-git=none");
-    expect(npmrc).toContain("min-release-age=3");
+    expect(npmrc).toContain("min-release-age=30");
   });
 
   it("creates backup when managed file already exists with different content", () => {

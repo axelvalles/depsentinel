@@ -16,7 +16,9 @@ function buildRemediationCommands(facts: ReturnType<typeof detectProjectFacts>):
         ? "yarn install --immutable"
         : facts.packageManager === "bun"
           ? "bun install --frozen-lockfile"
-          : "npm ci";
+        : facts.packageManager === "npm"
+          ? "npm ci"
+          : "corepack enable && pnpm install --frozen-lockfile";
 
   return [install, "depsentinel init --write", "depsentinel ci --json"];
 }

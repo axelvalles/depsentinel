@@ -1,0 +1,5 @@
+# depsentinel secure npmignore
+.env
+*.log
+coverage/
+node_modules/

@@ -19,7 +19,9 @@ function buildRemediationCommands(packageManager: string): string[] {
         ? "yarn install --immutable"
         : packageManager === "bun"
           ? "bun install --frozen-lockfile"
-          : "npm ci";
+        : packageManager === "npm"
+          ? "npm ci"
+          : "corepack enable && pnpm install --frozen-lockfile";
 
   return [install, "npm audit --audit-level=critical"];
 }

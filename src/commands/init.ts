@@ -51,7 +51,7 @@ function buildNpmRc(): string {
     "# depsentinel npm security baseline",
     "ignore-scripts=true",
     "allow-git=none",
-    "min-release-age=3",
+    "min-release-age=30",
     ""
   ].join("\n");
 }
@@ -114,16 +114,18 @@ function buildCiWorkflow(): string {
     "    runs-on: ubuntu-latest",
     "    steps:",
     "      - uses: actions/checkout@v4",
+    "      - uses: pnpm/action-setup@v4",
     "      - uses: actions/setup-node@v4",
     "        with:",
     "          node-version: 22",
+    "          cache: pnpm",
     "      - name: Install dependencies",
     "        run: |",
     "          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile;",
     "          elif [ -f yarn.lock ]; then corepack enable && yarn install --immutable;",
     "          elif [ -f bun.lockb ]; then bun install --frozen-lockfile;",
     "          elif [ -f package-lock.json ]; then npm ci;",
-    "          else npm install; fi",
+    "          else corepack enable && pnpm install; fi",
     "      - name: Run depsentinel CI gate",
     "        run: npx depsentinel ci --json"
   ].join("\n");

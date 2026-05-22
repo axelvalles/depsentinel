@@ -52,7 +52,7 @@ describe("doctor command", () => {
     const dir = makeTempDir();
     writePkg(dir);
     writeLockfile(dir);
-    writeFileSync(path.join(dir, ".npmrc"), "ignore-scripts=true\nallow-git=none\nmin-release-age=3\n");
+    writeFileSync(path.join(dir, ".npmrc"), "ignore-scripts=true\nallow-git=none\nmin-release-age=30\n");
     const { envelope } = runDoctor({ cwd: dir });
     const npmrc = envelope.result.diagnoses.find((d) => d.id === "config.npmrc.secure");
     expect(npmrc?.status).toBe("pass");
