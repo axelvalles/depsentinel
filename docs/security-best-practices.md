@@ -12,7 +12,7 @@ Goal: help any JS/TS project adopt secure defaults with low friction.
 - `ci`: fails (non-zero exit code) when critical policy findings exist.
 - `install <package>`: preflight safety check with `allow|warn|block` decision, optional tool adapters (`npq`, `sfw`, `lockfile-lint`), graceful degradation diagnostics, and `--force` for override.
 - `doctor`: diagnoses project against 26 best practices across 4 categories with PASS/FAIL/SKIP.
-- `fix`: applies known remediations (`.npmrc`, `.npmignore`, `lint:lockfile`, `sbom` scripts, PM configs) with dry-run by default.
+- `doctor --fix`: diagnoses and applies known remediations (`.npmrc`, `.npmignore`, `lint:lockfile`, `sbom` scripts, PM configs).
 - `override add|remove|list`: manage policy exceptions with reason and expiration date.
 - Unknown framework: no hard-fail; falls back to universal JS/TS baseline checks.
 
@@ -75,17 +75,17 @@ All projects get `.npmrc`, `.npmignore`, and CI workflow regardless of PM.
 # 1) Diagnose
 npx depsentinel scan
 
-# 2) Generate secure baseline files (dry-run by default)
+# 2) Generate secure baseline files
 npx depsentinel init
 
-# 3) Apply generated files
-npx depsentinel init --write
-
-# 4) Check a package before installing
+# 3) Check a package before installing
 npx depsentinel install express
 
-# 5) Force-install after acknowledging risks
+# 4) Force-install after acknowledging risks
 npx depsentinel install some-package --force
+
+# 5) Run diagnosis and auto-fix known gaps
+npx depsentinel doctor --fix
 
 # 6) Enforce in CI
 npx depsentinel ci --json
@@ -133,7 +133,7 @@ This matrix combines OWASP/Snyk npm best practices and Liran Tal's Awesome npm S
 |---|---|---|
 | 23 | Responsible vulnerability disclosure | Process requiring human coordination and judgement |
 | 24 | Verify documentation examples before copying | Requires manual code review |
-| 25 | Avoid blind npm package upgrades | Manual review needed; `fix` sets up safe foundation |
+| 25 | Avoid blind npm package upgrades | Manual review needed; `doctor --fix` sets up safe foundation |
 | 26 | Reduce package dependency tree | Architectural design decision, not a tooling concern |
 
 ## Current boundaries

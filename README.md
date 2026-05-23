@@ -13,7 +13,7 @@ npx depsentinel scan
 ### 2) Generate secure defaults
 
 ```bash
-npx depsentinel init --write
+npx depsentinel init
 ```
 
 ### 3) Run full diagnosis
@@ -32,12 +32,12 @@ npx depsentinel ci --json
 
 | Command | Purpose |
 |---|---|
-| `scan` | Detect PM, lockfile, framework; return `risk_score` + `remediation_commands` |
-| `init --write` | Generate `.npmrc`, `.npmignore`, CI workflow, PM-specific configs |
+| `scan` | Explain current risk posture: detect PM/framework, evaluate policies, return `risk_score` + remediation commands |
+| `init` | Generate `.npmrc`, `.npmignore`, CI workflow, PM-specific configs (`--dry-run` to preview) |
 | `ci --json` | Policy gate for CI pipelines; exits non-zero on critical findings |
 | `install <pkg>` | Preflight check before adding a dependency (`allow\|warn\|block`) |
 | `doctor` | Diagnose project against 26 npm security best practices |
-| `fix --write` | Auto-apply known remediations (`.npmrc`, scripts, configs) |
+| `doctor --fix` | Diagnose and auto-apply known remediations (`.npmrc`, scripts, configs) |
 | `trust add\|remove\|list` | Manage allow/ignore build-script trust per package manager |
 | `override add\|remove\|list` | Manage policy exceptions with reason and expiration |
 
@@ -54,7 +54,7 @@ depsentinel trust list --pm pnpm
 ```bash
 # First-time hardening
 depsentinel scan
-depsentinel init --write
+depsentinel init
 depsentinel doctor
 
 # Dependency preflight

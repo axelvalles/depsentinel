@@ -64,7 +64,7 @@ export function collectDiagnoses(rootDir: string, facts: DetectionFacts): Doctor
     checkYarnRc(rootDir, facts),
     checkLockfileCommitted(rootDir),
     checkCiProvenance(rootDir, context),
-    checkLintLockfile(rootDir),
+    checkLintLockfile(rootDir, facts),
     checkSbomScript(rootDir),
     checkEnvPlaintext(rootDir),
     checkNpxHardening(),
@@ -255,15 +255,72 @@ function checkCiProvenance(rootDir: string, context: DoctorContext): DoctorDiagn
   return fail("ci.provenance.missing", "ci", "medium", "CI workflows missing id-token: write for provenance", "Publishing with provenance requires `id-token: write` permission.", "Add `permissions:\\n  id-token: write` to your publish workflow.");
 }
 
-function checkLintLockfile(rootDir: string): DoctorDiagnosis {
+function checkLintLockfile(rootDir: string, facts: DetectionFacts): DoctorDiagnosis {
+  if (facts.packageManager === "pnpm" || facts.packageManager === "bun") {
+    return skip(
+      "ci.lint-lockfile.not-supported",
+      "ci",
+      "lockfile-lint not applicable for this lockfile",
+      `Detected ${facts.packageManager}. lockfile-lint currently supports npm/yarn lockfiles only.`,
+      "Keep CI deterministic with frozen lockfile installs and enforce depsentinel ci as a required check."
+    );
+  }
+
   const pkgPath = path.join(rootDir, "package.json");
   if (!existsSync(pkgPath)) return skip("ci.lint-lockfile.no-pkg", "ci", "No package.json", "Cannot check lockfile lint scripts.", "Ensure package.json exists.");
   const pkg = readJsonSafe(pkgPath, {} as { scripts?: Record<string, string>; devDependencies?: Record<string, string> });
-  const hasScript = pkg.scripts?.["lint:lockfile"] ?? false;
-  const hasDep = pkg.devDependencies?.["lockfile-lint"] ?? false;
-  if (hasScript && hasDep) return pass("ci.lint-lockfile.configured", "ci", "lockfile-lint configured in package.json");
-  if (hasScript && !hasDep) return fail("ci.lint-lockfile.no-dep", "ci", "medium", "lint:lockfile script exists but lockfile-lint not in devDependencies", "The lockfile lint script references a tool that is not installed.", "Run `npm install --save-dev lockfile-lint`.");
-  return fail("ci.lint-lockfile.missing", "ci", "medium", "Missing lockfile linting gate", "Without lockfile-lint, lockfile injection attacks go undetected.", "Install lockfile-lint and add `\"lint:lockfile\": \"lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https\"` to scripts.");
+  const script = pkg.scripts?.["lint:lockfile"];
+  const hasScript = Boolean(script);
+  const hasDep = Boolean(pkg.devDependencies?.["lockfile-lint"]);
+
+  if (hasScript && hasDep) {
+    if (facts.packageManager === "yarn" && !String(script).includes("--type yarn")) {
+      return fail(
+        "ci.lint-lockfile.mismatch",
+        "ci",
+        "medium",
+        "lint:lockfile script does not match detected lockfile",
+        "Yarn lockfile detected, but lint script is not configured with `--type yarn`.",
+        "Set `lint:lockfile` to `lockfile-lint --path yarn.lock --type yarn --allowed-hosts npm --validate-https`."
+      );
+    }
+    if (facts.packageManager === "npm" && !String(script).includes("--type npm")) {
+      return fail(
+        "ci.lint-lockfile.mismatch",
+        "ci",
+        "medium",
+        "lint:lockfile script does not match detected lockfile",
+        "npm lockfile detected, but lint script is not configured with `--type npm`.",
+        "Set `lint:lockfile` to `lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https`."
+      );
+    }
+    return pass("ci.lint-lockfile.configured", "ci", "lockfile-lint configured in package.json");
+  }
+
+  if (hasScript && !hasDep) {
+    return fail(
+      "ci.lint-lockfile.no-dep",
+      "ci",
+      "medium",
+      "lint:lockfile script exists but lockfile-lint not in devDependencies",
+      "The lockfile lint script references a tool that is not installed.",
+      "Run `npm install --save-dev lockfile-lint`."
+    );
+  }
+
+  const suggestion =
+    facts.packageManager === "yarn"
+      ? "Install lockfile-lint and add `\"lint:lockfile\": \"lockfile-lint --path yarn.lock --type yarn --allowed-hosts npm --validate-https\"` to scripts."
+      : "Install lockfile-lint and add `\"lint:lockfile\": \"lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https\"` to scripts.";
+
+  return fail(
+    "ci.lint-lockfile.missing",
+    "ci",
+    "medium",
+    "Missing lockfile linting gate",
+    "Without lockfile-lint, lockfile injection attacks go undetected.",
+    suggestion
+  );
 }
 
 function checkSbomScript(rootDir: string): DoctorDiagnosis {

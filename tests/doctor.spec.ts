@@ -187,4 +187,14 @@ describe("doctor command", () => {
     expect(mixed?.status).toBe("fail");
     expect(mixed?.severity).toBe("high");
   });
+
+  it("skips lockfile-lint check for pnpm projects", () => {
+    const dir = makeTempDir();
+    writePkg(dir, { packageManager: "pnpm@11.2.2" });
+    writeFileSync(path.join(dir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+
+    const { envelope } = runDoctor({ cwd: dir });
+    const lockLint = envelope.result.diagnoses.find((d) => d.id === "ci.lint-lockfile.not-supported");
+    expect(lockLint?.status).toBe("skipped");
+  });
 });

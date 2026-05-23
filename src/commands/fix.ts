@@ -24,6 +24,16 @@ interface PkgJson {
   [key: string]: unknown;
 }
 
+function lockfileLintScriptForManager(manager: ReturnType<typeof detectProjectFacts>["packageManager"]): string | null {
+  if (manager === "npm") {
+    return "lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https";
+  }
+  if (manager === "yarn") {
+    return "lockfile-lint --path yarn.lock --type yarn --allowed-hosts npm --validate-https";
+  }
+  return null;
+}
+
 function readJsonSafe(filePath: string): Record<string, unknown> {
   if (!existsSync(filePath)) return {};
   try {
@@ -70,10 +80,11 @@ function collectFixPlans(cwd: string) {
     pkgDirty = true;
   }
 
-  // lint:lockfile script
+  // lint:lockfile script (lockfile-lint supports npm/yarn)
   if (!pkg.scripts) pkg.scripts = {};
-  if (!pkg.scripts["lint:lockfile"]) {
-    pkg.scripts["lint:lockfile"] = "lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https";
+  const lintScript = lockfileLintScriptForManager(facts.packageManager);
+  if (lintScript && !pkg.scripts["lint:lockfile"]) {
+    pkg.scripts["lint:lockfile"] = lintScript;
     pkgDirty = true;
   }
 

@@ -11,6 +11,7 @@ export function formatScanHuman(envelope: ScanEnvelope): string {
 
   return [
     "depsentinel scan",
+    "what this does: inspects your project setup and flags supply-chain risk before install/publish",
     `risk score: ${envelope.result.risk_score}`,
     `package manager: ${envelope.facts.packageManager}`,
     "findings:",

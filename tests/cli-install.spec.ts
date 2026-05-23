@@ -8,9 +8,9 @@ describe("CLI install command registration", () => {
     expect(commands).toContain("install");
   });
 
-  it("install command is registered after existing commands", () => {
+  it("install command is registered in stable command order", () => {
     const cli = createCli();
     const commandNames = cli.commands.map((cmd: { name: string }) => cmd.name);
-    expect(commandNames).toEqual(["scan", "ci", "init", "install", "doctor", "fix", "trust", "override"]);
+    expect(commandNames).toEqual(["scan", "ci", "init", "install", "doctor", "trust", "override"]);
   });
 });

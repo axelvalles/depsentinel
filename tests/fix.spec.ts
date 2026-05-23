@@ -26,6 +26,10 @@ function writeLockfile(dir: string) {
   writeFileSync(path.join(dir, "package-lock.json"), JSON.stringify({ name: "fix-test", lockfileVersion: 2 }));
 }
 
+function writePnpmLockfile(dir: string) {
+  writeFileSync(path.join(dir, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+}
+
 describe("fix command", () => {
   it("defaults to dry-run mode", () => {
     const dir = makeTempDir();
@@ -60,6 +64,15 @@ describe("fix command", () => {
     runFix({ cwd: dir, dryRun: false });
     const pkg = JSON.parse(require("node:fs").readFileSync(path.join(dir, "package.json"), "utf8"));
     expect(pkg.scripts["lint:lockfile"]).toBeDefined();
+  });
+
+  it("does not add lint:lockfile script for pnpm projects", () => {
+    const dir = makeTempDir();
+    writePkg(dir, { scripts: { test: "vitest" }, packageManager: "pnpm@11.2.2" });
+    writePnpmLockfile(dir);
+    runFix({ cwd: dir, dryRun: false });
+    const pkg = JSON.parse(require("node:fs").readFileSync(path.join(dir, "package.json"), "utf8"));
+    expect(pkg.scripts["lint:lockfile"]).toBeUndefined();
   });
 
   it("adds sbom script to package.json", () => {
